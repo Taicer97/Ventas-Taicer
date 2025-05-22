@@ -1,0 +1,295 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Venta-Taicer</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #b3e5fc; /* azul celeste */
+    }
+    header {
+      text-align: center;
+      background-color: #03a9f4;
+      color: white;
+      padding: 1em;
+      font-size: 2em;
+    }
+    #productos {
+      padding: 1em;
+    }
+    .producto {
+      background: white;
+      padding: 1em;
+      margin-bottom: 1em;
+      border-radius: 8px;
+      position: relative;
+    }
+    .producto img {
+      max-width: 100px;
+      display: block;
+    }
+    .boton {
+      padding: 0.5em 1em;
+      margin: 0.5em 0.2em;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .verde { background-color: #4caf50; color: white; }
+    .rojo { background-color: #f44336; color: white; }
+    .azul { background-color: #2196f3; color: white; }
+    .carrito-icono {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      font-size: 2em;
+      cursor: pointer;
+    }
+    .agregar-btn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+    }
+    #formAgregar, #carrito, #formCompra {
+      display: none;
+      background: white;
+      padding: 1em;
+      margin: 1em;
+      border-radius: 10px;
+    }
+    #notificacion {
+      position: fixed;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #4caf50;
+      color: white;
+      padding: 1em;
+      border-radius: 5px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<header>Venta-Taicer</header>
+
+<div id="productos">
+  <h2>Productos</h2>
+  <div id="listaProductos"></div>
+</div>
+
+<div class="carrito-icono" onclick="mostrarCarrito()">🛒</div>
+<button class="boton verde agregar-btn" onclick="pedirContraseña()">Agregar</button>
+
+<div id="formAgregar">
+  <h3>Agregar Nuevo Producto</h3>
+  <input type="text" id="nombre" placeholder="Nombre"><br><br>
+  <input type="text" id="descripcion" placeholder="Descripción"><br><br>
+  <input type="number" id="precio" placeholder="Precio"><br><br>
+  <input type="file" id="imagen"><br><br>
+  <button class="boton verde" onclick="agregarProducto()">Agregar</button>
+  <button class="boton rojo" onclick="cancelarAgregar()">Volver</button>
+</div>
+
+<div id="carrito">
+  <h3>Carrito</h3>
+  <ul id="listaCarrito"></ul>
+  <p>Total: $<span id="totalCarrito">0</span></p>
+  <button class="boton azul" onclick="comprar()">Comprar</button>
+  <button class="boton rojo" onclick="vaciarCarrito()">Vaciar</button>
+  <button class="boton" onclick="cerrarCarrito()">Volver</button>
+</div>
+
+<div id="formCompra">
+  <h3>Formulario de Compra</h3>
+  <input type="text" id="clienteNombre" placeholder="Nombre y Apellido"><br><br>
+  <input type="text" id="clienteDireccion" placeholder="Dirección"><br><br>
+  <input type="text" id="clienteCalle" placeholder="Calle y Número"><br><br>
+  <input type="text" id="clienteTelefono" placeholder="Número Celular"><br><br>
+  <select id="tipoPago" onchange="mostrarPagoExtra()">
+    <option value="">Seleccione tipo de pago</option>
+    <option value="Efectivo">Efectivo</option>
+    <option value="Transferencia">Transferencia</option>
+    <option value="Tarjeta">Tarjeta</option>
+  </select><br><br>
+  <div id="transferenciaInfo" style="display:none;">
+    <p>tarjeta a tranferir: 4152 3140 6279 4451</p>
+    <p>Sube captura de pantalla o PDF
+    <input type="file" /><br><br>
+  </div>
+  <div id="tarjetaInfo" style="display:none;">
+    <p>Se cobrará una comisión extra.</p>
+  </div>
+  <button class="boton verde" onclick="enviarPedido()">Enviar</button>
+  <button class="boton rojo" onclick="cancelarCompra()">Cancelar</button>
+</div>
+
+<div id="notificacion"></div>
+
+<script>
+let productos = [];
+let carrito = [];
+let admin = false;
+
+function pedirContraseña() {
+  const pass = prompt("Ingrese contraseña:");
+  if (pass === "Taicer97") {
+    admin = true;
+    document.getElementById("formAgregar").style.display = "block";
+  } else {
+    alert("Contraseña incorrecta.");
+  }
+}
+
+function agregarProducto() {
+  const nombre = document.getElementById("nombre").value;
+  const descripcion = document.getElementById("descripcion").value;
+  const precio = document.getElementById("precio").value;
+  const imagen = document.getElementById("imagen").files[0];
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const producto = {
+      nombre,
+      descripcion,
+      precio,
+      imagen: e.target.result
+    };
+    productos.push(producto);
+    mostrarProductos();
+    cancelarAgregar();
+  };
+  if(imagen){
+    reader.readAsDataURL(imagen);
+  }
+}
+
+function mostrarProductos() {
+  const lista = document.getElementById("listaProductos");
+  lista.innerHTML = "";
+  productos.forEach((prod, i) => {
+    const div = document.createElement("div");
+    div.className = "producto";
+    div.innerHTML = `
+      <img src="${prod.imagen}">
+      <h4>${prod.nombre}</h4>
+      <p>${prod.descripcion}</p>
+      <p>Precio: $${prod.precio}</p>
+      <button class="boton azul" onclick="agregarAlCarrito(${i})">Agregar al Carrito</button>
+      <button class="boton verde" onclick="comprarDirecto(${i})">Comprar</button>
+      ${admin ? `<button class="boton rojo" style="position:absolute; bottom:10px; right:10px;" onclick="eliminarProducto(${i})">🗑️</button>` : ''}
+    `;
+    lista.appendChild(div);
+  });
+}
+
+function cancelarAgregar() {
+  document.getElementById("formAgregar").style.display = "none";
+  admin = false;
+  mostrarProductos();
+}
+
+function agregarAlCarrito(index) {
+  carrito.push(productos[index]);
+  mostrarNotificacion("Agregado al carrito");
+  actualizarCarrito();
+}
+
+function mostrarCarrito() {
+  document.getElementById("carrito").style.display = "block";
+  document.getElementById("productos").style.display = "none";
+  actualizarCarrito();
+}
+
+function cerrarCarrito() {
+  document.getElementById("carrito").style.display = "none";
+  document.getElementById("productos").style.display = "block";
+}
+
+function vaciarCarrito() {
+  carrito = [];
+  actualizarCarrito();
+}
+
+function actualizarCarrito() {
+  const lista = document.getElementById("listaCarrito");
+  lista.innerHTML = "";
+  let total = 0;
+  carrito.forEach((prod, i) => {
+    total += parseFloat(prod.precio);
+    const li = document.createElement("li");
+    li.innerHTML = `${prod.nombre} - $${prod.precio} <button class="boton rojo" onclick="eliminarDelCarrito(${i})">-</button>`;
+    lista.appendChild(li);
+  });
+  document.getElementById("totalCarrito").textContent = total.toFixed(2);
+}
+
+function eliminarDelCarrito(index) {
+  carrito.splice(index, 1);
+  actualizarCarrito();
+}
+
+function comprar() {
+  document.getElementById("formCompra").style.display = "block";
+  document.getElementById("carrito").style.display = "none";
+}
+
+function cancelarCompra() {
+  document.getElementById("formCompra").style.display = "none";
+  document.getElementById("productos").style.display = "block";
+}
+
+function mostrarPagoExtra() {
+  const tipo = document.getElementById("tipoPago").value;
+  document.getElementById("transferenciaInfo").style.display = tipo === "Transferencia" ? "block" : "none";
+  document.getElementById("tarjetaInfo").style.display = tipo === "Tarjeta" ? "block" : "none";
+}
+
+function enviarPedido() {
+  const nombre = document.getElementById("clienteNombre").value;
+  const direccion = document.getElementById("clienteDireccion").value;
+  const calle = document.getElementById("clienteCalle").value;
+  const tel = document.getElementById("clienteTelefono").value;
+  const pago = document.getElementById("tipoPago").value;
+
+  let mensaje = `Pedido:%0A${carrito.map(p => `- ${p.nombre}: $${p.precio}`).join('%0A')}
+  %0ATotal: $${document.getElementById("totalCarrito").textContent}
+  %0A--- Datos del Cliente ---
+  %0ANombre: ${nombre}
+  %0ADirección: ${direccion}
+  %0ACalle y Número: ${calle}
+  %0ATeléfono: ${tel}
+  %0APago: ${pago}`;
+
+  window.open(`https://wa.me/qr/NPBQ3TPGUCNUJ1?text=${mensaje}`, "_blank");
+  mostrarNotificacion("En breve recibirás un WhatsApp");
+  cancelarCompra();
+  vaciarCarrito();
+}
+
+function mostrarNotificacion(mensaje) {
+  const div = document.getElementById("notificacion");
+  div.textContent = mensaje;
+  div.style.display = "block";
+  setTimeout(() => div.style.display = "none", 3000);
+}
+
+function eliminarProducto(i) {
+  productos.splice(i, 1);
+  mostrarProductos();
+}
+
+function comprarDirecto(index) {
+  carrito = [productos[index]];
+  mostrarCarrito();
+  comprar();
+}
+</script>
+
+</body>
+</html>
